@@ -28,7 +28,9 @@ MAXNUM = 5							; number of olympians
 
 .data
 filename BYTE FSIZE DUP(?)			; array to hold the file name
+;filename BYTE "C:\Users\ecb10\Desktop\Project 5\Project-5\input.txt", 0
 buffer BYTE BSIZE DUP(?)			; buffer to hold the file contents
+bufferC BYTE BSIZE DUP(?)
 prompt BYTE "Enter a filename: ",0	; prompt for a string
 ferror BYTE "Invalid input...",0	; error message
 
@@ -65,6 +67,7 @@ ERROR:
 DONE:
 	;loadAllOlympians
 	;outputAllOlympians
+	Call bufferCopy				;remove when done testing
 	call WaitMsg					; wait for user to hit enter
 	invoke ExitProcess,0			; bye
 main ENDP
@@ -78,6 +81,7 @@ main ENDP
 ;	[ebp+24] = max size buffer
 ; returns:
 ;	eax = number of bytes read, zero on an error
+
 loadFile PROC
 	push ebp						; save the base pointer
 	mov ebp,esp						; base of the stack frame
@@ -118,4 +122,32 @@ OK:									; clean up
 	pop ebp
 	ret 20
 loadFile ENDP
+
+
+;copies from main buffer
+;returns pointer to new buffer in eax
+bufferCopy PROC
+	push ebp
+	mov ebp, esp
+	sub esp, 4
+	;need to take buffer and loop through it
+	
+	;loop through buffer 
+	;replace ODh carriage return character with 
+;	mov edx, eax				;pointer to buffer array	
+;copy as usual
+Copy:
+;replace 0Dh carriage return character with a NULL character
+;then skips next character which is a feed character 0Ah
+RepLine:
+
+	
+bufferCopy ENDP
+
+;test buffer output
+testPrint PROC
+
+testPrint ENDP
 END main
+
+;C:\Users\ecb10\Desktop\Project 5\Project-5\input.txt
