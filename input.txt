@@ -1,0 +1,31 @@
+Michael Phelps
+USA
+M
+23
+3
+2
+Larisa Latynina
+USSR
+F
+9
+5
+4
+Paavo Nurmi
+Finland
+M
+9
+3
+0
+Mark Spitz
+USA
+M
+9
+1
+1
+Carl Lewis
+USA
+M
+9
+1
+0
+*
