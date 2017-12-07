@@ -28,11 +28,11 @@ MAXNUM = 5							; number of olympians
 
 .data
 filename BYTE FSIZE DUP(?)			; array to hold the file name
-;filename BYTE "C:\Users\ecb10\Desktop\Project 5\Project-5\input.txt", 0
 buffer BYTE BSIZE DUP(?)			; buffer to hold the file contents
 
-;TODO// Figure out if I am allowed to do this
+;TODO// Remove this after done testing
 bufferC BYTE BSIZE DUP(?)
+
 prompt BYTE "Enter a filename: ",0	; prompt for a string
 ferror BYTE "Invalid input...",0	; error message
 
@@ -127,6 +127,8 @@ OK:									; clean up
 loadFile ENDP
 
 
+
+
 ;copies from main buffer formatting along the way
 ; Recieves: 
 ;	[ebp+8] = pointer to input BYTE array
@@ -139,30 +141,36 @@ loadFile ENDP
 bufferCopy PROC
 	push ebp						;save the base pointer
 	mov ebp, esp					;base of the stack frame
-	;sub esp, 4						;create local variable for return value
-	;pushad							;push all directories
-	;push eax
+	
 	push edi
 	push ecx
 	push ebx	
 
 	mov eax, [ebp+8]				;move input buffer to eax (memory address)
 	mov edi, [ebp+12]				;move output buffer to ebx (memory address)
-	;mov ecx, [ebp+16]				;move maxbuffersize to counter
-	mov ecx, 0
-;CR = 0Dh							; c/r
-;LF = 0Ah							; line feed
-;NULL = 00h							; null character
+	mov ecx, [ebp+16]				;move maxbuffersize to counter
 
-FindNull:
-	mov bl, NULL					;ebx = NULL
-	cmp [edi], bl					;does current mem location == NULL?
-	je Copy							;yes? start copying
-	add edi, TYPE BYTE				;else, move to next mem location
-	jmp FindNull					;loop again
-
-;; Create two new loops, one for first segment and one for the rest
-
+;sets output buffer to where it was left off
+;check [edi] and [edi+1] for NULL to remove beginning space
+;Resume: 
+	;mov bl, NULL							;bl = NULL
+	;cmp [edi+1], bl							;check if mem address = NULL
+	;j Beginning
+	;je CopyBuffer							;if mem address is NULL, go to CopyBuffer and set edi to next location
+	;add edi, TYPE BYTE						;otherwise increment again
+	;jmp Resume								;loop again
+;
+;Beginning:
+	;mov bl, NULL
+	;cmp [edi], bl
+	;je CopyBuffer
+;
+	;
+;
+;CopyBuffer:
+	;add edi, TYPE BYTE						;increment mem location
+	;jmp Copy								;start copying
+;
 Copy:
 	mov bl, [eax]
 	cmp bl, CR		
@@ -177,17 +185,12 @@ ReturnFound:
 	mov bl, NULL					;move NULL character to al
 	mov [edi], bl					;replace character with NULL
 	add eax, TYPE BYTE * 2			;increment to line feed
-	;mov eax, TYPE BYTE				;increment past line feed
-	add edi, TYPE BYTE				;increment target buffer to next slot
-	;mov DWORD PTR [ebp-4],eax		;move local variable to eax
+	;add edi, TYPE BYTE				;increment target buffer to next slot
 BYE:
-	;popad
-	;pop eax
 	pop edi
 	pop ecx
 	pop ebx
 
-	;mov eax,DWORD PTR [ebp-4]		;save next location on eax for next call
 	mov esp,ebp	
 	
 	pop ebp
@@ -201,16 +204,14 @@ testing PROC
 	push OFFSET buffer
 
 	Call bufferCopy
-	mov edx, OFFSET bufferC
+	mov edx, OFFSET bufferC + 1
 	Call WriteString
 
-	;Call CrlF
-	;Call WriteString
+	Call CrlF
 	
 	push LINESIZE
 	push OFFSET bufferC
 	push eax
-	;push OFFSET buffer
 	
 	Call bufferCopy
 
