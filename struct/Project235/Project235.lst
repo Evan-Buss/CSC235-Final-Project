@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.00.24210.0	    12/06/17 15:35:59
+Microsoft (R) Macro Assembler Version 14.00.24210.0	    12/07/17 00:18:58
 struct.asm						     Page 1 - 1
 
 
@@ -61,16 +61,21 @@ struct.asm						     Page 1 - 1
  00000064  000003E8 [		buffer BYTE BSIZE DUP(?)			; buffer to hold the file contents
 	    00
 	   ]
- 0000044C 45 6E 74 65 72	prompt BYTE "Enter a filename: ",0	; prompt for a string
+
+				;TODO// Figure out if I am allowed to do this
+ 0000044C  000003E8 [		bufferC BYTE BSIZE DUP(?)
+	    00
+	   ]
+ 00000834 45 6E 74 65 72	prompt BYTE "Enter a filename: ",0	; prompt for a string
 	   20 61 20 66 69
 	   6C 65 6E 61 6D
 	   65 3A 20 00
- 0000045F 49 6E 76 61 6C	ferror BYTE "Invalid input...",0	; error message
+ 00000847 49 6E 76 61 6C	ferror BYTE "Invalid input...",0	; error message
 	   69 64 20 69 6E
 	   70 75 74 2E 2E
 	   2E 00
 
- 00000470  00000020 [		olist olympian <>,<>,<>,<>,<>		; list of 5 olympians
+ 00000858  00000020 [		olist olympian <>,<>,<>,<>,<>		; list of 5 olympians
 	    61
 	   ]
 	   00000020 [
@@ -117,15 +122,15 @@ struct.asm						     Page 1 - 1
 	   FFFFFFFF
 
 				; for output listing
- 00000600 4E 61 6D 65 3A	outname    BYTE "Name: ",0
+ 000009E8 4E 61 6D 65 3A	outname    BYTE "Name: ",0
 	   20 00
- 00000607 43 6F 75 6E 74	outcountry BYTE "Country: ",0
+ 000009EF 43 6F 75 6E 74	outcountry BYTE "Country: ",0
 	   72 79 3A 20 00
- 00000611 47 65 6E 64 65	outgender  BYTE "Gender: ",0
+ 000009F9 47 65 6E 64 65	outgender  BYTE "Gender: ",0
 	   72 3A 20 00
- 0000061A 4D 65 64 61 6C	outmedals  BYTE "Medals: ",0
+ 00000A02 4D 65 64 61 6C	outmedals  BYTE "Medals: ",0
 	   73 3A 20 00
- 00000623 54 6F 74 61 6C	outtotal   BYTE "Total Medals: ",0
+ 00000A0B 54 6F 74 61 6C	outtotal   BYTE "Total Medals: ",0
 	   20 4D 65 64 61
 	   6C 73 3A 20 00
 
@@ -136,7 +141,7 @@ struct.asm						     Page 1 - 1
  00000005  68 00000064 R		push OFFSET buffer				; point to the start of the buffer
  0000000A  6A 64			push FSIZE						; file name size
  0000000C  68 00000000 R		push OFFSET filename			; point to the start of the string
- 00000011  68 0000044C R		push OFFSET prompt				; output the prompt
+ 00000011  68 00000834 R		push OFFSET prompt				; output the prompt
  00000016  E8 00000027			call loadFile					; load the buffer
  0000001B  83 F8 00			cmp eax,0						; nothing read, bail out
  0000001E  74 02			jz ERROR
@@ -146,14 +151,15 @@ struct.asm						     Page 1 - 1
  00000020  EB 0F			jmp DONE						; done processing data, jump to the end
 
  00000022			ERROR:
- 00000022  BA 0000045F R	    mov edx,OFFSET ferror			; output error message
+ 00000022  BA 00000847 R	    mov edx,OFFSET ferror			; output error message
  00000027  E8 00000000 E		call WriteString				; uses edx 
  0000002C  E8 00000000 E		call CrLf 
 
  00000031			DONE:
 					;loadAllOlympians
 					;outputAllOlympians
- 00000031  E8 00000061			Call bufferCopy				;remove when done testing
+					;Call bufferCopy				;remove when done testing
+ 00000031  E8 00000091			Call testing
  00000036  E8 00000000 E		call WaitMsg					; wait for user to hit enter
 					invoke ExitProcess,0			; bye
  00000042			main ENDP
@@ -167,6 +173,7 @@ struct.asm						     Page 1 - 1
 				;	[ebp+24] = max size buffer
 				; returns:
 				;	eax = number of bytes read, zero on an error
+
  00000042			loadFile PROC
  00000042  55				push ebp						; save the base pointer
  00000043  8B EC			mov ebp,esp						; base of the stack frame
@@ -204,35 +211,85 @@ struct.asm						     Page 1 - 1
  0000008D			OK:									; clean up
  0000008D  61				popad							; restore the registers
  0000008E  8B 45 FC			mov eax,DWORD PTR [ebp-4]		; save the number of bytes read for return in eax
- 00000091  8B E5			mov esp,ebp						; remove local varfrom stack 
+ 00000091  8B E5			mov esp,ebp						; remove local var from stack 
  00000093  5D				pop ebp
  00000094  C2 0014			ret 20
- 00000097loadFile ENDP
+ 00000097			loadFile ENDP
 
-				;copies from main buffer
-				;returns pointer to new buffer in eax
+
+				;copies from main buffer formatting along the way
+				; Recieves: 
+				;	[ebp+8] = pointer to input BYTE array
+				;	[ebp+12] = pointer to output BYTE array
+				;	[ebp+16] =	maximum buffer size
+				; Returns (in eax)
+				;		Pointer to next character in the input array
+				; each time it hits a carriage return in returns
+				;substitutes NULL character for CR skips over next char which should be LF
  00000097			bufferCopy PROC
- 00000097  55				push ebp
- 00000098  8B EC			mov ebp, esp
- 0000009A  83 EC 04			sub esp, 4
- 0000009D  60				pushad
- 0000009E  58				pop eax
+ 00000097  55				push ebp						;save the base pointer
+ 00000098  8B EC			mov ebp, esp					;base of the stack frame
+ 0000009A  60				pushad							;push all directories
 					
-					;loop through buffer 
-					;replace ODh carriage return character with 
- 0000009F  8B D0			mov edx, eax				;pointer to buffer array	
 
+ 0000009B  8B 75 08			mov esi, [ebp+8]				;move input buffer to eax (memory address)
+ 0000009E  8B 7D 0C			mov edi, [ebp+12]				;move output buffer to ebx (memory address)
+ 000000A1  8B 4D 10			mov ecx, [ebp+16]				;move maxbuffersize to counter
+				;CR = 0Dh							; c/r
+				;LF = 0Ah							; line feed
+				;NULL = 00h							; null character
+
+					;mov edx, eax
+					;Call WriteString
+ 000000A4			Copy:
+ 000000A4  8A 06			mov al, [esi]
+ 000000A6  3C 4D			cmp al, 4Dh ;CR
+ 000000A8  74 0A			je ReplaceReturn
+ 000000AA  88 07			mov [edi], al
+ 000000AC  83 C6 01			add esi, TYPE BYTE
+ 000000AF  83 C7 01			add edi, TYPE BYTE
+ 000000B2  E2 F0			loop Copy
 					
- 000000A1			bufferCopy ENDP
+					
+
+ 000000B4			ReplaceReturn:
+ 000000B4  BA 00000000			mov edx, NULL					;move NULL character to edx
+ 000000B9  88 13			mov [ebx], dl					;replace character with NULL
+ 000000BB  BB 00000001			mov ebx, TYPE BYTE				;increment to line feed
+ 000000C0  BB 00000001			mov ebx, TYPE BYTE				;increment past line feed
+
+ 000000C5			BYE:
+ 000000C5  61				popad
+ 000000C6  C3				ret
+ 000000C7			bufferCopy ENDP
 
 				;test buffer output
- 000000A1			testPrint PROC
+ 000000C7			testing PROC
+ 000000C7  6A 64			push LINESIZE
+ 000000C9  68 0000044C R		push OFFSET bufferC
+ 000000CE  68 00000064 R		push OFFSET buffer
 
- 000000A1			testPrint ENDP
+ 000000D3  E8 FFFFFFBF			Call bufferCopy
+ 000000D8  BA 0000044C R		mov edx, OFFSET bufferC
+ 000000DD  E8 00000000 E		Call WriteString
+ 000000E2  C3				ret
+ 000000E3			testing ENDP
+
+
 				END main
 
+				;EAX EBX ECX EDX ESI EDI EIP ESP EBP EFL
+
 				;C:\Users\ecb10\Desktop\Project 5\Project-5\input.txt
-Microsoft (R) Macro Assembler Version 14.00.24210.0	    12/06/17 15:35:59
+				;C:\Users\ecb10\Desktop\Project-5\input.txt
+
+				;basic structure
+				;call loadAllOlympians
+				;		-loadOlympian
+				;			-bufferCopy
+				; call outputAllOlypians
+				;		-outPutOlympians
+Microsoft (R) Macro Assembler Version 14.00.24210.0	    12/07/17 00:18:58
 struct.asm						     Symbols 2 - 1
 
 
@@ -331,8 +388,8 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 00000632 Para	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 000000A1 Para	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000A1A Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000000E3 Para	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -439,7 +496,10 @@ WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-bufferCopy . . . . . . . . . . .	P Near	 00000097 _TEXT	Length= 0000000A Public STDCALL
+bufferCopy . . . . . . . . . . .	P Near	 00000097 _TEXT	Length= 00000030 Public STDCALL
+  Copy . . . . . . . . . . . . .	L Near	 000000A4 _TEXT	
+  ReplaceReturn  . . . . . . . .	L Near	 000000B4 _TEXT	
+  BYE  . . . . . . . . . . . . .	L Near	 000000C5 _TEXT	
 loadFile . . . . . . . . . . . .	P Near	 00000042 _TEXT	Length= 00000055 Public STDCALL
   BAD  . . . . . . . . . . . . .	L Near	 00000081 _TEXT	
   OK . . . . . . . . . . . . . .	L Near	 0000008D _TEXT	
@@ -448,7 +508,7 @@ main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000042 Public 
   DONE . . . . . . . . . . . . .	L Near	 00000031 _TEXT	
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
-testPrint  . . . . . . . . . . .	P Near	 000000A1 _TEXT	Length= 00000000 Public STDCALL
+testing  . . . . . . . . . . . .	P Near	 000000C7 _TEXT	Length= 0000001C Public STDCALL
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 
 
@@ -676,10 +736,11 @@ WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
 black  . . . . . . . . . . . . .	Number	 00000000h   
 blue . . . . . . . . . . . . . .	Number	 00000001h   
 brown  . . . . . . . . . . . . .	Number	 00000006h   
+bufferC  . . . . . . . . . . . .	Byte	 0000044C _DATA	
 buffer . . . . . . . . . . . . .	Byte	 00000064 _DATA	
 cyan . . . . . . . . . . . . . .	Number	 00000003h   
 exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
-ferror . . . . . . . . . . . . .	Byte	 0000045F _DATA	
+ferror . . . . . . . . . . . . .	Byte	 00000847 _DATA	
 filename . . . . . . . . . . . .	Byte	 00000000 _DATA	
 gray . . . . . . . . . . . . . .	Number	 00000008h   
 green  . . . . . . . . . . . . .	Number	 00000002h   
@@ -690,13 +751,13 @@ lightGreen . . . . . . . . . . .	Number	 0000000Ah
 lightMagenta . . . . . . . . . .	Number	 0000000Dh   
 lightRed . . . . . . . . . . . .	Number	 0000000Ch   
 magenta  . . . . . . . . . . . .	Number	 00000005h   
-olist  . . . . . . . . . . . . .	olympian  00000470 _DATA	
-outcountry . . . . . . . . . . .	Byte	 00000607 _DATA	
-outgender  . . . . . . . . . . .	Byte	 00000611 _DATA	
-outmedals  . . . . . . . . . . .	Byte	 0000061A _DATA	
-outname  . . . . . . . . . . . .	Byte	 00000600 _DATA	
-outtotal . . . . . . . . . . . .	Byte	 00000623 _DATA	
-prompt . . . . . . . . . . . . .	Byte	 0000044C _DATA	
+olist  . . . . . . . . . . . . .	olympian  00000858 _DATA	
+outcountry . . . . . . . . . . .	Byte	 000009EF _DATA	
+outgender  . . . . . . . . . . .	Byte	 000009F9 _DATA	
+outmedals  . . . . . . . . . . .	Byte	 00000A02 _DATA	
+outname  . . . . . . . . . . . .	Byte	 000009E8 _DATA	
+outtotal . . . . . . . . . . . .	Byte	 00000A0B _DATA	
+prompt . . . . . . . . . . . . .	Byte	 00000834 _DATA	
 red  . . . . . . . . . . . . . .	Number	 00000004h   
 white  . . . . . . . . . . . . .	Number	 0000000Fh   
 wsprintf . . . . . . . . . . . .	Text   	 wsprintfA

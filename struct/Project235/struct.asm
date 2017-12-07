@@ -30,6 +30,8 @@ MAXNUM = 5							; number of olympians
 filename BYTE FSIZE DUP(?)			; array to hold the file name
 ;filename BYTE "C:\Users\ecb10\Desktop\Project 5\Project-5\input.txt", 0
 buffer BYTE BSIZE DUP(?)			; buffer to hold the file contents
+
+;TODO// Figure out if I am allowed to do this
 bufferC BYTE BSIZE DUP(?)
 prompt BYTE "Enter a filename: ",0	; prompt for a string
 ferror BYTE "Invalid input...",0	; error message
@@ -67,7 +69,8 @@ ERROR:
 DONE:
 	;loadAllOlympians
 	;outputAllOlympians
-	Call bufferCopy				;remove when done testing
+	;Call bufferCopy				;remove when done testing
+	Call testing
 	call WaitMsg					; wait for user to hit enter
 	invoke ExitProcess,0			; bye
 main ENDP
@@ -118,36 +121,83 @@ BAD:
 OK:									; clean up
 	popad							; restore the registers
 	mov eax,DWORD PTR [ebp-4]		; save the number of bytes read for return in eax
-	mov esp,ebp						; remove local varfrom stack 
+	mov esp,ebp						; remove local var from stack 
 	pop ebp
 	ret 20
 loadFile ENDP
 
 
-;copies from main buffer
-;returns pointer to new buffer in eax
+;copies from main buffer formatting along the way
+; Recieves: 
+;	[ebp+8] = pointer to input BYTE array
+;	[ebp+12] = pointer to output BYTE array
+;	[ebp+16] =	maximum buffer size
+; Returns (in eax)
+;		Pointer to next character in the input array
+; each time it hits a carriage return in returns
+;substitutes NULL character for CR skips over next char which should be LF
 bufferCopy PROC
-	push ebp
-	mov ebp, esp
-	sub esp, 4
-	;need to take buffer and loop through it
+	push ebp						;save the base pointer
+	mov ebp, esp					;base of the stack frame
+	pushad							;push all directories
 	
-	;loop through buffer 
-	;replace ODh carriage return character with 
-;	mov edx, eax				;pointer to buffer array	
-;copy as usual
-Copy:
-;replace 0Dh carriage return character with a NULL character
-;then skips next character which is a feed character 0Ah
-RepLine:
 
+	mov esi, [ebp+8]				;move input buffer to eax (memory address)
+	mov edi, [ebp+12]				;move output buffer to ebx (memory address)
+	mov ecx, [ebp+16]				;move maxbuffersize to counter
+;CR = 0Dh							; c/r
+;LF = 0Ah							; line feed
+;NULL = 00h							; null character
+
+	;mov edx, eax
+	;Call WriteString
+;loops through characters until it finds return
+Copy:
+	mov al, [esi]
+	cmp al, CR		;4Dh
+	je ReturnFound
+	mov [edi], al
+	add esi, TYPE BYTE
+	add edi, TYPE BYTE
+	loop Copy
 	
+	
+;replaces return char with NULL char
+ReturnFound:
+	mov al, NULL					;move NULL character to al
+	mov [edi], al					;replace character with NULL
+	mov esi, TYPE BYTE				;increment to line feed
+	mov esi, TYPE BYTE				;increment past line feed
+
+;TODO: Figure out how to transfer esi pointer to EAX and then return it
+BYE:
+	popad
+	ret
 bufferCopy ENDP
 
 ;test buffer output
-testPrint PROC
+testing PROC
+	push LINESIZE
+	push OFFSET bufferC
+	push OFFSET buffer
 
-testPrint ENDP
+	Call bufferCopy
+	mov edx, OFFSET bufferC
+	Call WriteString
+	ret
+testing ENDP
+
+
 END main
 
+;EAX EBX ECX EDX ESI EDI EIP ESP EBP EFL
+
 ;C:\Users\ecb10\Desktop\Project 5\Project-5\input.txt
+;C:\Users\ecb10\Desktop\Project-5\input.txt
+
+;basic structure
+;call loadAllOlympians
+;		-loadOlympian
+;			-bufferCopy
+; call outputAllOlypians
+;		-outPutOlympians
