@@ -196,6 +196,16 @@ BYE:
 	pop ebp
 	ret 12
 bufferCopy ENDP
+;load information from loadFile into olympian Struct
+;Recieves:
+;	pointer to beginning of struct
+;	pointer to beginning of information buffer for next athlete
+;	maximum number of bytes to read in each transfer (pass to bufferCopy)
+;Returns (in eax)
+;	Pointer to next Olympian athlete
+loadOlympian PROC
+
+loadOlympian ENDP
 
 ;test buffer output
 testing PROC
