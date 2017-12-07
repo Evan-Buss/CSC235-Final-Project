@@ -139,40 +139,59 @@ loadFile ENDP
 bufferCopy PROC
 	push ebp						;save the base pointer
 	mov ebp, esp					;base of the stack frame
-	pushad							;push all directories
-	
+	;sub esp, 4						;create local variable for return value
+	;pushad							;push all directories
+	;push eax
+	push edi
+	push ecx
+	push ebx	
 
-	mov esi, [ebp+8]				;move input buffer to eax (memory address)
+	mov eax, [ebp+8]				;move input buffer to eax (memory address)
 	mov edi, [ebp+12]				;move output buffer to ebx (memory address)
-	mov ecx, [ebp+16]				;move maxbuffersize to counter
+	;mov ecx, [ebp+16]				;move maxbuffersize to counter
+	mov ecx, 0
 ;CR = 0Dh							; c/r
 ;LF = 0Ah							; line feed
 ;NULL = 00h							; null character
 
-	;mov edx, eax
-	;Call WriteString
-;loops through characters until it finds return
+FindNull:
+	mov bl, NULL					;ebx = NULL
+	cmp [edi], bl					;does current mem location == NULL?
+	je Copy							;yes? start copying
+	add edi, TYPE BYTE				;else, move to next mem location
+	jmp FindNull					;loop again
+
+;; Create two new loops, one for first segment and one for the rest
+
 Copy:
-	mov al, [esi]
-	cmp al, CR		;4Dh
+	mov bl, [eax]
+	cmp bl, CR		
 	je ReturnFound
-	mov [edi], al
-	add esi, TYPE BYTE
+	mov [edi], bl
+	add eax, TYPE BYTE
 	add edi, TYPE BYTE
 	loop Copy
-	
-	
+
 ;replaces return char with NULL char
 ReturnFound:
-	mov al, NULL					;move NULL character to al
-	mov [edi], al					;replace character with NULL
-	mov esi, TYPE BYTE				;increment to line feed
-	mov esi, TYPE BYTE				;increment past line feed
-
-;TODO: Figure out how to transfer esi pointer to EAX and then return it
+	mov bl, NULL					;move NULL character to al
+	mov [edi], bl					;replace character with NULL
+	add eax, TYPE BYTE * 2			;increment to line feed
+	;mov eax, TYPE BYTE				;increment past line feed
+	add edi, TYPE BYTE				;increment target buffer to next slot
+	;mov DWORD PTR [ebp-4],eax		;move local variable to eax
 BYE:
-	popad
-	ret
+	;popad
+	;pop eax
+	pop edi
+	pop ecx
+	pop ebx
+
+	;mov eax,DWORD PTR [ebp-4]		;save next location on eax for next call
+	mov esp,ebp	
+	
+	pop ebp
+	ret 12
 bufferCopy ENDP
 
 ;test buffer output
@@ -184,6 +203,19 @@ testing PROC
 	Call bufferCopy
 	mov edx, OFFSET bufferC
 	Call WriteString
+
+	;Call CrlF
+	;Call WriteString
+	
+	push LINESIZE
+	push OFFSET bufferC
+	push eax
+	;push OFFSET buffer
+	
+	Call bufferCopy
+
+	mov edx, OFFSET bufferC
+	call WriteString
 	ret
 testing ENDP
 

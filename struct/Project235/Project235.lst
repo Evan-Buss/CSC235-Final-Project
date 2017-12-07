@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.00.24210.0	    12/07/17 00:18:58
+Microsoft (R) Macro Assembler Version 14.00.24210.0	    12/07/17 12:45:53
 struct.asm						     Page 1 - 1
 
 
@@ -159,7 +159,7 @@ struct.asm						     Page 1 - 1
 					;loadAllOlympians
 					;outputAllOlympians
 					;Call bufferCopy				;remove when done testing
- 00000031  E8 00000091			Call testing
+ 00000031  E8 000000A1			Call testing
  00000036  E8 00000000 E		call WaitMsg					; wait for user to hit enter
 					invoke ExitProcess,0			; bye
  00000042			main ENDP
@@ -229,51 +229,85 @@ struct.asm						     Page 1 - 1
  00000097			bufferCopy PROC
  00000097  55				push ebp						;save the base pointer
  00000098  8B EC			mov ebp, esp					;base of the stack frame
- 0000009A  60				pushad							;push all directories
-					
+					;sub esp, 4						;create local variable for return value
+					;pushad							;push all directories
+					;push eax
+ 0000009A  57				push edi
+ 0000009B  51				push ecx
+ 0000009C  53				push ebx	
 
- 0000009B  8B 75 08			mov esi, [ebp+8]				;move input buffer to eax (memory address)
- 0000009E  8B 7D 0C			mov edi, [ebp+12]				;move output buffer to ebx (memory address)
- 000000A1  8B 4D 10			mov ecx, [ebp+16]				;move maxbuffersize to counter
+ 0000009D  8B 45 08			mov eax, [ebp+8]				;move input buffer to eax (memory address)
+ 000000A0  8B 7D 0C			mov edi, [ebp+12]				;move output buffer to ebx (memory address)
+					;mov ecx, [ebp+16]				;move maxbuffersize to counter
+ 000000A3  B9 00000000			mov ecx, 0
 				;CR = 0Dh							; c/r
 				;LF = 0Ah							; line feed
 				;NULL = 00h							; null character
 
-					;mov edx, eax
-					;Call WriteString
- 000000A4			Copy:
- 000000A4  8A 06			mov al, [esi]
- 000000A6  3C 4D			cmp al, 4Dh ;CR
- 000000A8  74 0A			je ReplaceReturn
- 000000AA  88 07			mov [edi], al
- 000000AC  83 C6 01			add esi, TYPE BYTE
- 000000AF  83 C7 01			add edi, TYPE BYTE
- 000000B2  E2 F0			loop Copy
-					
-					
+ 000000A8			FindNull:
+ 000000A8  B3 00			mov bl, NULL					;ebx = NULL
+ 000000AA  38 1F			cmp [edi], bl					;does current mem location == NULL?
+ 000000AC  74 05			je Copy							;yes? start copying
+ 000000AE  83 C7 01			add edi, TYPE BYTE				;else, move to next mem location
+ 000000B1  EB F5			jmp FindNull					;loop again
 
- 000000B4			ReplaceReturn:
- 000000B4  BA 00000000			mov edx, NULL					;move NULL character to edx
- 000000B9  88 13			mov [ebx], dl					;replace character with NULL
- 000000BB  BB 00000001			mov ebx, TYPE BYTE				;increment to line feed
- 000000C0  BB 00000001			mov ebx, TYPE BYTE				;increment past line feed
+				;; Create two new loops, one for first segment and one for the rest
 
- 000000C5			BYE:
- 000000C5  61				popad
- 000000C6  C3				ret
- 000000C7			bufferCopy ENDP
+ 000000B3			Copy:
+ 000000B3  8A 18			mov bl, [eax]
+ 000000B5  80 FB 0D			cmp bl, CR		
+ 000000B8  74 0A			je ReturnFound
+ 000000BA  88 1F			mov [edi], bl
+ 000000BC  83 C0 01			add eax, TYPE BYTE
+ 000000BF  83 C7 01			add edi, TYPE BYTE
+ 000000C2  E2 EF			loop Copy
+
+				;replaces return char with NULL char
+ 000000C4			ReturnFound:
+ 000000C4  B3 00			mov bl, NULL					;move NULL character to al
+ 000000C6  88 1F			mov [edi], bl					;replace character with NULL
+ 000000C8  83 C0 02			add eax, TYPE BYTE * 2			;increment to line feed
+					;mov eax, TYPE BYTE				;increment past line feed
+ 000000CB  83 C7 01			add edi, TYPE BYTE				;increment target buffer to next slot
+					;mov DWORD PTR [ebp-4],eax		;move local variable to eax
+ 000000CE			BYE:
+					;popad
+					;pop eax
+ 000000CE  5F				pop edi
+ 000000CF  59				pop ecx
+ 000000D0  5B				pop ebx
+
+					;mov eax,DWORD PTR [ebp-4]		;save next location on eax for next call
+ 000000D1  8B E5			mov esp,ebp	
+					
+ 000000D3  5D				pop ebp
+ 000000D4  C2 000C			ret 12
+ 000000D7			bufferCopy ENDP
 
 				;test buffer output
- 000000C7			testing PROC
- 000000C7  6A 64			push LINESIZE
- 000000C9  68 0000044C R		push OFFSET bufferC
- 000000CE  68 00000064 R		push OFFSET buffer
+ 000000D7			testing PROC
+ 000000D7  6A 64			push LINESIZE
+ 000000D9  68 0000044C R		push OFFSET bufferC
+ 000000DE  68 00000064 R		push OFFSET buffer
 
- 000000D3  E8 FFFFFFBF			Call bufferCopy
- 000000D8  BA 0000044C R		mov edx, OFFSET bufferC
- 000000DD  E8 00000000 E		Call WriteString
- 000000E2  C3				ret
- 000000E3			testing ENDP
+ 000000E3  E8 FFFFFFAF			Call bufferCopy
+ 000000E8  BA 0000044C R		mov edx, OFFSET bufferC
+ 000000ED  E8 00000000 E		Call WriteString
+
+					;Call CrlF
+					;Call WriteString
+					
+ 000000F2  6A 64			push LINESIZE
+ 000000F4  68 0000044C R		push OFFSET bufferC
+ 000000F9  50				push eax
+					;push OFFSET buffer
+					
+ 000000FA  E8 FFFFFF98			Call bufferCopy
+
+ 000000FF  BA 0000044C R		mov edx, OFFSET bufferC
+ 00000104  E8 00000000 E		call WriteString
+ 00000109  C3				ret
+ 0000010A			testing ENDP
 
 
 				END main
@@ -289,7 +323,7 @@ struct.asm						     Page 1 - 1
 				;			-bufferCopy
 				; call outputAllOlypians
 				;		-outPutOlympians
-Microsoft (R) Macro Assembler Version 14.00.24210.0	    12/07/17 00:18:58
+Microsoft (R) Macro Assembler Version 14.00.24210.0	    12/07/17 12:45:53
 struct.asm						     Symbols 2 - 1
 
 
@@ -389,7 +423,7 @@ Segments and Groups:
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
 _DATA  . . . . . . . . . . . . .	32 Bit	 00000A1A Para	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 000000E3 Para	  Public  'CODE'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 0000010A Para	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -496,10 +530,11 @@ WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-bufferCopy . . . . . . . . . . .	P Near	 00000097 _TEXT	Length= 00000030 Public STDCALL
-  Copy . . . . . . . . . . . . .	L Near	 000000A4 _TEXT	
-  ReplaceReturn  . . . . . . . .	L Near	 000000B4 _TEXT	
-  BYE  . . . . . . . . . . . . .	L Near	 000000C5 _TEXT	
+bufferCopy . . . . . . . . . . .	P Near	 00000097 _TEXT	Length= 00000040 Public STDCALL
+  FindNull . . . . . . . . . . .	L Near	 000000A8 _TEXT	
+  Copy . . . . . . . . . . . . .	L Near	 000000B3 _TEXT	
+  ReturnFound  . . . . . . . . .	L Near	 000000C4 _TEXT	
+  BYE  . . . . . . . . . . . . .	L Near	 000000CE _TEXT	
 loadFile . . . . . . . . . . . .	P Near	 00000042 _TEXT	Length= 00000055 Public STDCALL
   BAD  . . . . . . . . . . . . .	L Near	 00000081 _TEXT	
   OK . . . . . . . . . . . . . .	L Near	 0000008D _TEXT	
@@ -508,7 +543,7 @@ main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000042 Public 
   DONE . . . . . . . . . . . . .	L Near	 00000031 _TEXT	
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
-testing  . . . . . . . . . . . .	P Near	 000000C7 _TEXT	Length= 0000001C Public STDCALL
+testing  . . . . . . . . . . . .	P Near	 000000D7 _TEXT	Length= 00000033 Public STDCALL
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 
 
