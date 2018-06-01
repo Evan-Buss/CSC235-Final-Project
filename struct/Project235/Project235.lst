@@ -1,13 +1,15 @@
-Microsoft (R) Macro Assembler Version 14.00.24210.0	    11/30/17 15:46:49
+Microsoft (R) Macro Assembler Version 14.00.24210.0	    12/10/17 12:03:32
 struct.asm						     Page 1 - 1
 
 
+				;Evan Buss
+				;CSC235 
+				;Dr. Carelli
+				;12/9/17
 				;
-				; Load a list of olympians into an array of structs
-				; print them out together with the total medal count
-				; 
-				; PLEASE ENTER YOUR NAME:
-				;
+				; Loads a list of olympians into an array of structs
+				; and prints them out together with the total medal count
+
 
 				include Irvine32.inc
 			      C ; Include file for Irvine32.lib             (Irvine32.inc)
@@ -43,7 +45,7 @@ struct.asm						     Page 1 - 1
 				olympian ENDS						; 164 total
 
 				; define some constants for global use
- = 000003E8			FSIZE = 1000						; max file name size
+ = 00000064			FSIZE = 100							; max file name size
  = 000003E8			BSIZE = 1000						; buffer size
  = 00000064			LINESIZE = 100						; max input line size
  = 0000000D			CR = 0Dh							; c/r
@@ -54,22 +56,22 @@ struct.asm						     Page 1 - 1
  = 00000005			MAXNUM = 5							; number of olympians
 
  00000000			.data
- 00000000  000003E8 [		filename BYTE FSIZE DUP(?)			; array to hold the file name
+ 00000000  00000064 [		filename BYTE FSIZE DUP(?)			; array to hold the file name
 	    00
 	   ]
- 000003E8  000003E8 [		buffer BYTE BSIZE DUP(?)			; buffer to hold the file contents
+ 00000064  000003E8 [		buffer BYTE BSIZE DUP(?)			; buffer to hold the file contents
 	    00
 	   ]
- 000007D0 45 6E 74 65 72	prompt BYTE "Enter a filename: ",0	; prompt for a string
+ 0000044C 45 6E 74 65 72	prompt BYTE "Enter a filename: ",0	; prompt for a string
 	   20 61 20 66 69
 	   6C 65 6E 61 6D
 	   65 3A 20 00
- 000007E3 49 6E 76 61 6C	ferror BYTE "Invalid input...",0	; error message
+ 0000045F 49 6E 76 61 6C	ferror BYTE "Invalid input...",0	; error message
 	   69 64 20 69 6E
 	   70 75 74 2E 2E
 	   2E 00
 
- 000007F4  00000020 [		olist olympian <>,<>,<>,<>,<>		; list of 5 olympians
+ 00000470  00000020 [		olist olympian <>,<>,<>,<>,<>		; list of 5 olympians
 	    61
 	   ]
 	   00000020 [
@@ -116,15 +118,15 @@ struct.asm						     Page 1 - 1
 	   FFFFFFFF
 
 				; for output listing
- 00000984 4E 61 6D 65 3A	outname    BYTE "Name: ",0
+ 00000600 4E 61 6D 65 3A	outname    BYTE "Name: ",0
 	   20 00
- 0000098B 43 6F 75 6E 74	outcountry BYTE "Country: ",0
+ 00000607 43 6F 75 6E 74	outcountry BYTE "Country: ",0
 	   72 79 3A 20 00
- 00000995 47 65 6E 64 65	outgender  BYTE "Gender: ",0
+ 00000611 47 65 6E 64 65	outgender  BYTE "Gender: ",0
 	   72 3A 20 00
- 0000099E 4D 65 64 61 6C	outmedals  BYTE "Medals: ",0
+ 0000061A 4D 65 64 61 6C	outmedals  BYTE "Medals: ",0
 	   73 3A 20 00
- 000009A7 54 6F 74 61 6C	outtotal   BYTE "Total Medals: ",0
+ 00000623 54 6F 74 61 6C	outtotal   BYTE "Total Medals: ",0
 	   20 4D 65 64 61
 	   6C 73 3A 20 00
 
@@ -132,81 +134,413 @@ struct.asm						     Page 1 - 1
  00000000			main PROC
 				    ; load the data from a file - push the arguments in reverse order
  00000000  68 000003E8			push BSIZE						; data buffer size
- 00000005  68 000003E8 R		push OFFSET buffer				; point to the start of the buffer
- 0000000A  68 000003E8			push FSIZE						; file name size
- 0000000F  68 00000000 R		push OFFSET filename			; point to the start of the string
- 00000014  68 000007D0 R		push OFFSET prompt				; output the prompt
- 00000019  E8 00000022			call loadFile					; load the buffer
- 0000001E  83 F8 00			cmp eax,0						; nothing read, bail out
- 00000021  74 02			jz ERROR
+ 00000005  68 00000064 R		push OFFSET buffer				; point to the start of the buffer
+ 0000000A  6A 64			push FSIZE						; file name size
+ 0000000C  68 00000000 R		push OFFSET filename			; point to the start of the string
+ 00000011  68 0000044C R		push OFFSET prompt				; output the prompt
+ 00000016  E8 00000040			call loadFile					; load the buffer
+					
+ 0000001B  83 F8 00			cmp eax,0						; nothing read, bail out
+ 0000001E  74 02			jz ERROR
 
 					; file loaded correctly, process and output the data
 
- 00000023  EB 0F			jmp DONE						; done processing data, jump to the end
+ 00000020  EB 11			jmp PROCESS						; done loading in, start to process buffer
 
- 00000025			ERROR:
- 00000025  BA 000007E3 R	    mov edx,OFFSET ferror			; output error message
- 0000002A  E8 00000000 E		call WriteString				; uses edx 
- 0000002F  E8 00000000 E		call CrLf 
+ 00000022			ERROR:
+ 00000022  BA 0000045F R	    mov edx,OFFSET ferror			; output error message
+ 00000027  E8 00000000 E		call WriteString				; uses edx 
+ 0000002C  E8 00000000 E		call CrLf 
+ 00000031  EB 1C			jmp BYE							;jump to end
 
- 00000034			DONE:
- 00000034  E8 00000000 E		call WaitMsg					; wait for user to hit enter
+ 00000033			PROCESS:
+					;load data into structs
+ 00000033  6A 64			push LINESIZE					;maximum line read size
+ 00000035  68 00000064 R		push OFFSET buffer				;point to input buffer
+ 0000003A  68 00000470 R		push OFFSET olist				;point to start of struct array	
+ 0000003F  E8 00000143			Call loadAllOlympians			;populate struct array with data
+
+					;display data to console
+ 00000044  50				push eax						;push number of olympians read in
+ 00000045  68 00000470 R		push OFFSET olist				;push start of array of olympian structs
+ 0000004A  E8 0000017F			Call outputAllOlympians			;outout the contents of struct array
+
+ 0000004F			BYE:
+ 0000004F  E8 00000000 E		call WaitMsg					; wait for user to hit enter
 					invoke ExitProcess,0			; bye
- 00000040			main ENDP
+ 0000005B			main ENDP
 
-				; prompts for a file name and reads contents into a buffer
-				; receives:
+				; Prompts for a file name and reads contents into a buffer
+				; Receives:
 				;	[ebp+8] = (null terminated) prompt string
 				;	[ebp+12] = pointer to file name string
 				;	[ebp+16] = max size of file name string
 				;	[ebp+20] = pointer to buffer array
 				;	[ebp+24] = max size buffer
-				; returns:
-				;	eax = number of bytes read, zero on an error
- 00000040			loadFile PROC
- 00000040  55				push ebp						; save the base pointer
- 00000041  8B EC			mov ebp,esp						; base of the stack frame
- 00000043  83 EC 04			sub esp,4						; create a local variable for the return value
- 00000046  60				pushad							; save all of the registers (lazy)
+				; Returns:
+				;	EAX = number of bytes read, zero on an error
+ 0000005B			loadFile PROC
+ 0000005B  55				push ebp						; save the base pointer
+ 0000005C  8B EC			mov ebp,esp						; base of the stack frame
+ 0000005E  83 EC 04			sub esp,4						; create a local variable for the return value
+ 00000061  60				pushad							; save all of the registers (lazy)
 
 					; prompt for the file name
- 00000047  8B 55 08		    mov edx,[ebp+8]					; output the prompt
- 0000004A  E8 00000000 E		call WriteString				; uses edx  
+ 00000062  8B 55 08		    mov edx,[ebp+8]					; output the prompt
+ 00000065  E8 00000000 E		call WriteString				; uses edx  
 
 					; get the file name, open the file
- 0000004F  8B 55 0C			mov edx,[ebp+12]				; point to the start of the file name string
- 00000052  8B 4D 10			mov ecx,[ebp+16]				; max size for file name
- 00000055  E8 00000000 E		call ReadString					; load the file name (string pointer in edx, max size in ecx)
- 0000005A  E8 00000000 E		call OpenInputFile				; open the file (expects name in edx, max size in ecx)
- 0000005F  8B D8			mov ebx,eax						; save the file pointer (returned in eax)
- 00000061  83 F8 FF			cmp eax,INVALID_HANDLE_VALUE	; check for a valid file pointer 
- 00000064  74 19			je BAD							; bail out on a failure
+ 0000006A  8B 55 0C			mov edx,[ebp+12]				; point to the start of the file name string
+ 0000006D  8B 4D 10			mov ecx,[ebp+16]				; max size for file name
+ 00000070  E8 00000000 E		call ReadString					; load the file name (string pointer in edx, max size in ecx)
+ 00000075  E8 00000000 E		call OpenInputFile				; open the file (expects name in edx, max size in ecx)
+ 0000007A  8B D8			mov ebx,eax						; save the file pointer (returned in eax)
+ 0000007C  83 F8 FF			cmp eax,INVALID_HANDLE_VALUE	; check for a valid file pointer 
+ 0000007F  74 19			je BAD							; bail out on a failure
 
 					; load the buffer with the contents of the file
- 00000066  8B 55 14			mov edx,[ebp+20]				; point to the start of the buffer
- 00000069  8B 4D 18			mov ecx,[ebp+24]				; max size of the buffer
- 0000006C  E8 00000000 E		call ReadFromFile				; gets file handle from eax (loaded above)
- 00000071  89 45 FC			mov DWORD PTR [ebp-4],eax		; save the number of bytes in local variable
- 00000074  8B C3			mov eax,ebx						; restore the file pointer for closing (saved above)
- 00000076  E8 00000000 E		call CloseFile					; close the file
- 0000007B  72 02			jc BAD							; if carry fag set, it's an error
- 0000007D  EB 0C			jmp OK
+ 00000081  8B 55 14			mov edx,[ebp+20]				; point to the start of the buffer
+ 00000084  8B 4D 18			mov ecx,[ebp+24]				; max size of the buffer
+ 00000087  E8 00000000 E		call ReadFromFile				; gets file handle from eax (loaded above)
+ 0000008C  89 45 FC			mov DWORD PTR [ebp-4],eax		; save the number of bytes in local variable
+ 0000008F  8B C3			mov eax,ebx						; restore the file pointer for closing (saved above)
+ 00000091  E8 00000000 E		call CloseFile					; close the file
+ 00000096  72 02			jc BAD							; if carry fag set, it's an error
+ 00000098  EB 0C			jmp OK
 
- 0000007F			BAD:
- 0000007F  E8 00000000 E		call WriteWindowsMsg			; got an error, display it
- 00000084  C7 45 FC			mov DWORD PTR [ebp-4],0			; error: set the number of bytes read to zero
+ 0000009A			BAD:
+ 0000009A  E8 00000000 E		call WriteWindowsMsg			; got an error, display it
+ 0000009F  C7 45 FC			mov DWORD PTR [ebp-4],0			; error: set the number of bytes read to zero
 	   00000000
 
- 0000008B			OK:									; clean up
- 0000008B  61				popad							; restore the registers
- 0000008C  8B 45 FC			mov eax,DWORD PTR [ebp-4]		; save the number of bytes read for return in eax
- 0000008F  8B E5			mov esp,ebp						; remove local varfrom stack 
- 00000091  5D				pop ebp
- 00000092  C2 0014			ret 20
- 00000095			loadFile ENDP
+ 000000A6			OK:									; clean up
+ 000000A6  61				popad							; restore the registers
+ 000000A7  8B 45 FC			mov eax,DWORD PTR [ebp-4]		; save the number of bytes read for return in eax
+ 000000AA  8B E5			mov esp,ebp						; remove local varfrom stack 
+ 000000AC  5D				pop ebp
+ 000000AD  C2 0014			ret 20
+ 000000B0			loadFile ENDP
+
+				;Copies data from input buffer, formats it, 
+				;	and copies it to designated output 
+				;Recieves:
+				;	[ebp+8] = pointer to input BYTE array
+				;	[ebp+12] = pointer to output BYTE array
+				;	[ebp+16] = maximum buffer size
+				;Returns:
+				;	EAX = pointer to next character in input array
+ 000000B0			bufferCopy PROC
+ 000000B0  55				push ebp						;save the base pointer
+ 000000B1  8B EC			mov ebp, esp					;base of the stack frame
+ 000000B3  83 EC 04			sub esp, 4						;create local variable to return eax
+ 000000B6  60				pushad							;push all directories
+					
+				;assign registers to stack elements
+ 000000B7  8B 45 08			mov eax, [ebp+8]				;eax = pointer to input array	
+ 000000BA  8B 7D 0C			mov edi, [ebp+12]				;edi = poiunter to output location
+ 000000BD  8B 4D 10			mov ecx, [ebp+16]				;ecx = max buffer size
+					
+ 000000C0			Copy:
+ 000000C0  8A 18			mov bl, [eax]					;move input character to bl
+ 000000C2  80 FB 0D			cmp bl, CR						;test if char = Return Char
+ 000000C5  74 0A			je Format						;yes? start formatting string
+ 000000C7  88 1F			mov [edi], bl					;otherwise copy to output
+ 000000C9  83 C0 01			add eax, TYPE BYTE				;next char of input array
+ 000000CC  83 C7 01			add edi, TYPE BYTE				;next char of output array
+ 000000CF  E2 EF			loop Copy						;keep going until Return char found
+
+ 000000D1			Format:
+ 000000D1  B3 00			mov bl, NULL					;bl = NULL
+ 000000D3  88 1F			mov [edi], bl					;replace blank char with NULL
+ 000000D5  83 C0 02			add eax, TYPE BYTE * 2			;increment past line feed
+ 000000D8  83 C7 01			add edi, TYPE BYTE				;increment output buffer
+
+ 000000DB			BYE:
+ 000000DB  89 45 FC			mov DWORD PTR [ebp-4],eax		;set local position variable = eax
+ 000000DE  61				popad							;pop all directories
+ 000000DF  8B 45 FC			mov eax,DWORD PTR [ebp-4]		;set eax = local variable
+ 000000E2  8B E5			mov esp, ebp					;remove local var from stack
+ 000000E4  5D				pop ebp
+ 000000E5  C2 000C			ret 12
+ 000000E8			bufferCopy ENDP
+
+
+				;Receives from loadAllOlympians:    
+				; [ebp+8] = pointer to the beginning of a struct object  
+				; [ebp+12] = pointer  be the beginning of information in the buffer for the next athlete  
+				; [ebp+16] = maximum number of bytes to read in each transfer (pass to bufferCopy).    
+				;Returns (in eax):  
+				; Pointer to the next Olympian (athlete) in the buffer  
+ 000000E8			loadOlympian PROC
+ 000000E8  55				push ebp							;save the base pointer
+ 000000E9  8B EC			mov ebp, esp						;base of the stack frame
+ 000000EB  83 EC 04			sub esp, 4							;create a local variable
+ 000000EE  60				pushad								;push all registers
+
+				;assign registers to stack data
+ 000000EF  8B 75 08			mov esi, [ebp+8]					;esi = pointer to beginning of struct
+ 000000F2  8B 45 0C			mov eax, [ebp+12]					;eax = pointer to info buffer
+ 000000F5  8B 4D 10			mov ecx, [ebp+16]					;ecx = max # of bytes to transfer
+					 
+				;move athlete to struct
+ 000000F8  8B D6			mov edx, esi						;edx now at the beginning of the struct
+ 000000FA  51				push ecx 							;push max bytes to transfer
+ 000000FB  52				push edx							;push output location
+ 000000FC  50				push eax							;push input location
+ 000000FD  E8 FFFFFFAE			Call bufferCopy						;load athlete
+
+				;move country to struct
+ 00000102  83 C2 20			add edx, OFFSET olympian.country	;edx at country field
+ 00000105  51				push ecx							;push max bytes to transfer
+ 00000106  52				push edx							;push output location
+ 00000107  50				push eax							;push input location
+ 00000108  E8 FFFFFFA3			Call bufferCopy						;load country
+
+				;move gender to struct
+ 0000010D  8B D6			mov edx, esi						;edx now at beginning of struct
+ 0000010F  83 C2 40			add edx, OFFSET olympian.gender		;edx at gender field
+ 00000112  51				push ecx							;push max bytes to transfer
+ 00000113  52				push edx							;push output location
+ 00000114  50				push eax							;push input location
+ 00000115  E8 FFFFFF96			Call bufferCopy						;load gender
+
+				;move gold medals to struct
+ 0000011A  51				push ecx							;push max bytes to transfer
+ 0000011B  FF 75 FC			push [ebp-4]						;push output location
+ 0000011E  50				push eax							;push input location
+ 0000011F  E8 FFFFFF8C			Call bufferCopy						;load gold medal to local var
+
+ 00000124  8B 55 FC			mov edx, DWORD PTR [ebp-4]			;load string into edx
+ 00000127  B9 00000004			mov ecx, 4							;set string length to DWORD
+ 0000012C  50				push eax							;eax is changed, so save it
+ 0000012D  E8 00000000 E		call ParseInteger32					;convert string to integer
+ 00000132  8B D6			mov edx, esi						;edx now at beginning of struct
+ 00000134  83 C2 44			add edx, OFFSET olympian.medals		;edx now at first medal field
+ 00000137  89 02			mov [edx], eax						;set value of medal to eax
+ 00000139  58				pop eax								;return eax to previous value
+
+				;move silver medals to struct
+ 0000013A  51				push ecx							;push max bytes to transfer
+ 0000013B  FF 75 FC			push [ebp-4]						;push output location
+ 0000013E  50				push eax							;push input location
+ 0000013F  E8 FFFFFF6C			Call bufferCopy						;load gold medal to local var
+
+ 00000144  8B 55 FC			mov edx, DWORD PTR [ebp-4]			;load string into edx
+ 00000147  B9 00000004			mov ecx, 4							;set string length to DWORD
+ 0000014C  50				push eax							;eax is changed, so save it
+ 0000014D  E8 00000000 E		call ParseInteger32					;convert string to integer
+ 00000152  8B D6			mov edx, esi						;edx now at beginning of struct
+ 00000154  83 C2 48			add edx, OFFSET olympian.medals[4]	;edx now at first medal field
+ 00000157  89 02			mov [edx], eax						;set value of medal to eax
+ 00000159  58				pop eax								;return eax to previous value
+
+				;move bronze medals to struct
+ 0000015A  51				push ecx							;push max bytes to transfer
+ 0000015B  FF 75 FC			push [ebp-4]						;push output location
+ 0000015E  50				push eax							;push input location
+ 0000015F  E8 FFFFFF4C			Call bufferCopy						;load gold medal to local var
+
+ 00000164  8B 55 FC			mov edx, DWORD PTR [ebp-4]			;load string into edx
+ 00000167  B9 00000004			mov ecx, 4							;set string length to DWORD
+ 0000016C  50				push eax							;eax is changed, so save it
+ 0000016D  E8 00000000 E		call ParseInteger32					;convert string to integer
+ 00000172  8B D6			mov edx, esi						;edx now at beginning of struct
+ 00000174  83 C2 4C			add edx, OFFSET olympian.medals[8]	;edx now at first medal field
+ 00000177  89 02			mov [edx], eax						;set value of medal to eax
+ 00000179  58				pop eax								;return eax to previous value
+
+ 0000017A  89 45 FC			mov DWORD PTR [ebp-4], eax			;set local var to eax
+ 0000017D  61				popad								;pop all registers
+ 0000017E  8B 45 FC			mov eax, DWORD PTR [ebp-4]			;set eax to local var
+ 00000181  8B E5			mov esp, ebp
+ 00000183  5D				pop ebp
+ 00000184  C2 000C			ret 12
+ 00000187			loadOlympian ENDP
+					
+				;Calls loadOlympian 5 times and
+				;	loads each olympian into the array of structs
+				;Receives from Main:
+				;	[ebp+8] = pointer to the beginning of the struct array  
+				;	[ebp+12] = pointer to the start of the buffer containing the data read from the file   
+				;	[ebp+16] = Maximum number of bytes to read on each line (pass to loadOlympian).    
+				;Returns:    
+				;	EAX = Number of Olympians read  
+ 00000187			loadAllOlympians PROC
+ 00000187  55				push ebp
+ 00000188  8B EC			mov ebp, esp
+ 0000018A  83 EC 04			sub esp, 4						;local variable for olympian #
+ 0000018D  60				pushad							;save all registers
+ 0000018E  BF 00000000			mov edi, 0						;start counter at 0	
+					
+				;assign registers to stack data
+ 00000193  8B 55 08			mov edx, [ebp+8]				;edx = pointer to struct array
+ 00000196  8B 45 0C			mov eax, [ebp+12]				;eax = pointer to input buffer
+ 00000199  8B 75 10			mov esi, [ebp+16]				;esi = pointer to max bytes to read
+
+ 0000019C  56				push esi						;size
+ 0000019D  50				push eax						;push input buffer
+ 0000019E  52				push edx						;push struct pointer	
+					
+				;check for asterisk
+ 0000019F  8A 18			mov bl, [eax]					;bl = character at eax
+ 000001A1  80 FB 2A			cmp bl, ASTERISK				;bl == * ?
+ 000001A4  74 1B			je BYE							;yes? Exit
+
+ 000001A6  E8 FFFFFF3D			Call loadOlympian				;load data into struct
+ 000001AB  47				inc edi							;increment counter
+
+ 000001AC			L1:
+ 000001AC  8A 18			mov bl, [eax]					;bl = character at eax
+ 000001AE  80 FB 2A			cmp bl, ASTERISK				;bl == *?
+ 000001B1  74 0E			je	BYE							;yes? Exit
+ 000001B3  56				push esi						;push max bytes
+ 000001B4  50				push eax						;push input buffer
+ 000001B5  83 C2 50			add edx, TYPE olympian			;next struct
+ 000001B8  52				push edx						;push struct pointer
+ 000001B9  E8 FFFFFF2A			Call loadOlympian				;load data into struct
+ 000001BE  47				inc edi							;increment counter
+ 000001BF  EB EB			jmp L1							;repeat
+					
+ 000001C1			BYE:
+ 000001C1  89 7D FC			mov DWORD PTR [ebp-4], edi		;set local position variable = edi
+ 000001C4  61				popad							;pop all directories
+ 000001C5  8B 45 FC			mov eax,DWORD PTR [ebp-4]		;set eax to local variable
+ 000001C8  8B E5			mov esp, ebp
+ 000001CA  5D				pop ebp
+ 000001CB  C2 000C			ret 12
+ 000001CE			loadAllOlympians ENDP
+
+				;Goes through array of olympian structs calls
+				;	outputOlympian for each one
+				;Receives:
+				;	[ebp+8] = pointer to olympian struct
+				;	[ebp+12] = number of olympians
+				;Returns:
+				;	Nothing
+ 000001CE			outputAllOlympians PROC
+ 000001CE  55				push ebp
+ 000001CF  8B EC			mov ebp, esp
+ 000001D1  60				pushad							;push all registers
+ 000001D2  E8 00000000 E		Call Crlf						;add space
+				;assign registers to stack data
+ 000001D7  8B 4D 0C			mov ecx, [ebp+12]				;set ecx to total number of olympians	
+ 000001DA  8B 45 08			mov eax, [ebp+8]				;set eax to pointer to olympian struct
+					
+ 000001DD  50				push eax						;push pointer to struct
+ 000001DE  E8 00000019			Call outputOlympian				;display olympian in console
+ 000001E3  49				dec ecx							;decrement counter
+ 000001E4			L1:
+ 000001E4  83 F9 00			cmp ecx, 0						;check remaining olympians
+ 000001E7  74 0C			je BYE							;No more? Exit
+ 000001E9  83 C0 50			add eax, TYPE olympian			;move to next olympian in array
+ 000001EC  50				push eax						;push pointer to struct
+ 000001ED  E8 0000000A			Call outputOlympian				;display olympian in console
+ 000001F2  49				dec ecx							;decrement counter
+ 000001F3  EB EF			jmp L1							;repeat
+ 000001F5			BYE:
+ 000001F5  61				popad							;restore all registers
+ 000001F6  8B E5			mov esp, ebp
+ 000001F8  5D				pop ebp
+ 000001F9  C2 0008			ret 8
+ 000001FC			outputAllOlympians ENDP
+
+				;Formats and displays an Olympian struct
+				;Recieves:
+				;	[ebp+8] = pointer to beginning of struct object
+				;Returns:
+				;	Nothing
+ 000001FC			outputOlympian PROC
+ 000001FC  55				push ebp
+ 000001FD  8B EC			mov ebp, esp
+ 000001FF  60				pushad
+ 00000200  B9 00000000			mov ecx, 0							;set ecx (total count) to 0
+					
+				;output athlete name
+ 00000205  BA 00000600 R		mov edx, OFFSET outname				;move output string to edx
+ 0000020A  E8 00000000 E		Call WriteString					;write to console
+
+ 0000020F  8B 5D 08			mov ebx, [ebp+8]					;set ebx to struct object 
+ 00000212  8B D3			mov edx, ebx
+ 00000214  E8 00000000 E		Call WriteString
+ 00000219  E8 00000000 E		Call Crlf
+
+				;output country
+ 0000021E  BA 00000607 R		mov edx, OFFSET outcountry			;move output string to edx
+ 00000223  E8 00000000 E		Call WriteString					;write to console
+
+ 00000228  8B 5D 08			mov ebx, [ebp+8]					;set ebx to struct object 
+ 0000022B  83 C3 20			add ebx, OFFSET olympian.country	;set ebx tp country field
+ 0000022E  8B D3			mov edx, ebx						;mov ebx to edx
+ 00000230  E8 00000000 E		Call WriteString					;write to console
+ 00000235  E8 00000000 E		Call Crlf
+
+				;output gender
+ 0000023A  BA 00000611 R		mov edx, OFFSET outgender			;move output string to edx
+ 0000023F  E8 00000000 E		Call WriteString					;write to console
+
+ 00000244  8B 5D 08			mov ebx, [ebp+8]					;set ebx to struct object 
+ 00000247  83 C3 40			add ebx, OFFSET olympian.gender
+ 0000024A  8B D3			mov edx, ebx
+ 0000024C  E8 00000000 E		Call WriteString
+ 00000251  E8 00000000 E		Call Crlf
+
+				;output medals
+ 00000256  BA 0000061A R		mov edx, OFFSET outmedals			;move output string to edx
+ 0000025B  E8 00000000 E		Call WriteString					;write to console
+
+ 00000260  8B 5D 08			mov ebx, [ebp+8]					;set ebx to struct object 
+ 00000263  83 C3 44			add ebx, OFFSET olympian.medals
+ 00000266  8B 03			mov eax, [ebx]
+ 00000268  E8 00000000 E		Call WriteDec
+
+ 0000026D  B0 20			mov al, SPACE
+ 0000026F  E8 00000000 E		Call WriteChar
+
+ 00000274  8B 5D 08			mov ebx, [ebp+8]					;set ebx to struct object 
+ 00000277  83 C3 48			add ebx, OFFSET olympian.medals[4]
+ 0000027A  8B 03			mov eax, [ebx]
+ 0000027C  E8 00000000 E		Call WriteDec
+
+ 00000281  B0 20			mov al, SPACE
+ 00000283  E8 00000000 E		Call WriteChar
+
+ 00000288  8B 5D 08			mov ebx, [ebp+8]					;set ebx to struct object	
+ 0000028B  83 C3 4C			add ebx, OFFSET olympian.medals[8]
+ 0000028E  8B 03			mov eax, [ebx]
+ 00000290  E8 00000000 E		Call WriteDec
+ 00000295  E8 00000000 E		Call Crlf
+
+				;output medal totals
+ 0000029A  BA 00000623 R		mov edx, OFFSET outtotal			;move output string to edx
+ 0000029F  E8 00000000 E		Call WriteString					;write to console
+					
+ 000002A4  8B 5D 08			mov ebx, [ebp+8]					;set ebx to struct object 
+ 000002A7  83 C3 44			add ebx, OFFSET olympian.medals		;move ebx to first medal field
+ 000002AA  03 0B			add ecx, [ebx]						;add value to total
+					
+					
+ 000002AC  8B 5D 08			mov ebx, [ebp+8]					;set ebx to struct object 
+ 000002AF  83 C3 48			add ebx, OFFSET olympian.medals[4]	;move ebx to second medal field
+ 000002B2  03 0B			add ecx, [ebx]						;add value to total
+
+ 000002B4  8B 5D 08			mov ebx, [ebp+8]					;set ebx to struct object 
+ 000002B7  83 C3 4C			add ebx, OFFSET olympian.medals[8]	;move ebx to third medal field
+ 000002BA  03 0B			add ecx, [ebx]						;add value to total
+					
+ 000002BC  8B C1			mov eax, ecx						;move total to eax
+ 000002BE  E8 00000000 E		Call WriteDec						;print total to console
+
+ 000002C3  E8 00000000 E		Call Crlf
+ 000002C8  E8 00000000 E		Call Crlf
+
+ 000002CD  61				popad
+ 000002CE  8B E5			mov esp, ebp
+ 000002D0  5D				pop ebp
+ 000002D1  C2 0004			ret 4
+ 000002D4			outputOlympian ENDP
 
 				END main
-Microsoft (R) Macro Assembler Version 14.00.24210.0	    11/30/17 15:46:49
+Microsoft (R) Macro Assembler Version 14.00.24210.0	    12/10/17 12:03:32
 struct.asm						     Symbols 2 - 1
 
 
@@ -305,8 +639,8 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 000009B6 Para	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000095 Para	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000632 Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000002D4 Para	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -413,12 +747,25 @@ WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-loadFile . . . . . . . . . . . .	P Near	 00000040 _TEXT	Length= 00000055 Public STDCALL
-  BAD  . . . . . . . . . . . . .	L Near	 0000007F _TEXT	
-  OK . . . . . . . . . . . . . .	L Near	 0000008B _TEXT	
-main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000040 Public STDCALL
-  ERROR  . . . . . . . . . . . .	L Near	 00000025 _TEXT	
-  DONE . . . . . . . . . . . . .	L Near	 00000034 _TEXT	
+bufferCopy . . . . . . . . . . .	P Near	 000000B0 _TEXT	Length= 00000038 Public STDCALL
+  Copy . . . . . . . . . . . . .	L Near	 000000C0 _TEXT	
+  Format . . . . . . . . . . . .	L Near	 000000D1 _TEXT	
+  BYE  . . . . . . . . . . . . .	L Near	 000000DB _TEXT	
+loadAllOlympians . . . . . . . .	P Near	 00000187 _TEXT	Length= 00000047 Public STDCALL
+  L1 . . . . . . . . . . . . . .	L Near	 000001AC _TEXT	
+  BYE  . . . . . . . . . . . . .	L Near	 000001C1 _TEXT	
+loadFile . . . . . . . . . . . .	P Near	 0000005B _TEXT	Length= 00000055 Public STDCALL
+  BAD  . . . . . . . . . . . . .	L Near	 0000009A _TEXT	
+  OK . . . . . . . . . . . . . .	L Near	 000000A6 _TEXT	
+loadOlympian . . . . . . . . . .	P Near	 000000E8 _TEXT	Length= 0000009F Public STDCALL
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000005B Public STDCALL
+  ERROR  . . . . . . . . . . . .	L Near	 00000022 _TEXT	
+  PROCESS  . . . . . . . . . . .	L Near	 00000033 _TEXT	
+  BYE  . . . . . . . . . . . . .	L Near	 0000004F _TEXT	
+outputAllOlympians . . . . . . .	P Near	 000001CE _TEXT	Length= 0000002E Public STDCALL
+  L1 . . . . . . . . . . . . . .	L Near	 000001E4 _TEXT	
+  BYE  . . . . . . . . . . . . .	L Near	 000001F5 _TEXT	
+outputOlympian . . . . . . . . .	P Near	 000001FC _TEXT	Length= 000000D8 Public STDCALL
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
@@ -483,7 +830,7 @@ FILE_WRITE_DATA  . . . . . . . .	Number	 00000002h
 FOCUS_EVENT  . . . . . . . . . .	Number	 00000010h   
 FORMAT_MESSAGE_ALLOCATE_BUFFER .	Number	 00000100h   
 FORMAT_MESSAGE_FROM_SYSTEM . . .	Number	 00001000h   
-FSIZE  . . . . . . . . . . . . .	Number	 000003E8h   
+FSIZE  . . . . . . . . . . . . .	Number	 00000064h   
 FormatMessage  . . . . . . . . .	Text   	 FormatMessageA
 GENERIC_ALL  . . . . . . . . . .	Number	 10000000h   
 GENERIC_EXECUTE  . . . . . . . .	Number	 20000000h   
@@ -648,10 +995,10 @@ WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
 black  . . . . . . . . . . . . .	Number	 00000000h   
 blue . . . . . . . . . . . . . .	Number	 00000001h   
 brown  . . . . . . . . . . . . .	Number	 00000006h   
-buffer . . . . . . . . . . . . .	Byte	 000003E8 _DATA	
+buffer . . . . . . . . . . . . .	Byte	 00000064 _DATA	
 cyan . . . . . . . . . . . . . .	Number	 00000003h   
 exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
-ferror . . . . . . . . . . . . .	Byte	 000007E3 _DATA	
+ferror . . . . . . . . . . . . .	Byte	 0000045F _DATA	
 filename . . . . . . . . . . . .	Byte	 00000000 _DATA	
 gray . . . . . . . . . . . . . .	Number	 00000008h   
 green  . . . . . . . . . . . . .	Number	 00000002h   
@@ -662,13 +1009,13 @@ lightGreen . . . . . . . . . . .	Number	 0000000Ah
 lightMagenta . . . . . . . . . .	Number	 0000000Dh   
 lightRed . . . . . . . . . . . .	Number	 0000000Ch   
 magenta  . . . . . . . . . . . .	Number	 00000005h   
-olist  . . . . . . . . . . . . .	olympian  000007F4 _DATA	
-outcountry . . . . . . . . . . .	Byte	 0000098B _DATA	
-outgender  . . . . . . . . . . .	Byte	 00000995 _DATA	
-outmedals  . . . . . . . . . . .	Byte	 0000099E _DATA	
-outname  . . . . . . . . . . . .	Byte	 00000984 _DATA	
-outtotal . . . . . . . . . . . .	Byte	 000009A7 _DATA	
-prompt . . . . . . . . . . . . .	Byte	 000007D0 _DATA	
+olist  . . . . . . . . . . . . .	olympian  00000470 _DATA	
+outcountry . . . . . . . . . . .	Byte	 00000607 _DATA	
+outgender  . . . . . . . . . . .	Byte	 00000611 _DATA	
+outmedals  . . . . . . . . . . .	Byte	 0000061A _DATA	
+outname  . . . . . . . . . . . .	Byte	 00000600 _DATA	
+outtotal . . . . . . . . . . . .	Byte	 00000623 _DATA	
+prompt . . . . . . . . . . . . .	Byte	 0000044C _DATA	
 red  . . . . . . . . . . . . . .	Number	 00000004h   
 white  . . . . . . . . . . . . .	Number	 0000000Fh   
 wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
